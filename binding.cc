@@ -9,29 +9,31 @@ using namespace node;
 using namespace v8;
 
 /* Some handy macros for adding properties to your objects */
-#define BINDING_SET_INT(target, name, val) \
-  ((target)->Set(String::NewSymbol(#name), Integer::New(val)))
-#define BINDING_SET_STR(target, name, val) \
-  ((target)->Set(String::NewSymbol(#name), String::New(str)))
+#define BINDING_SET(type, target, name, val) \
+  ((target)->Set(String::NewSymbol(#name), type::New(val)))
+#define BINDING_SET_NUM(target, name, val) BINDING_SET(Number, (target), name, (val))
+#define BINDING_SET_INT(target, name, val) BINDING_SET(Integer, (target), name, (val))
+#define BINDING_SET_STR(target, name, val) BINDING_SET(String, (target), name, (val))
 #define BINDING_SET_PROC(target, name, val) \
   ((target)->Set(String::NewSymbol(#name), \
     FunctionTemplate::New(val)->GetFunction()))
 
-#define BINDING_SET_CONST_INT(target, name, val) \
-  ((target)->Set(String::NewSymbol(#name), Integer::New(val), \
+#define BINDING_SET_CONST(type, target, name, val) \
+  ((target)->Set(String::NewSymbol(#name), type::New(val), \
     static_cast<PropertyAttribute>(ReadOnly | DontDelete)))
-#define BINDING_SET_CONST_STR(target, name, val) \
-  ((target)->Set(String::NewSymbol(#name), String::New(str), \
-    static_cast<PropertyAttribute>(ReadOnly | DontDelete)))
+#define BINDING_SET_CONST_NUM(target, name, val) BINDING_SET_CONST(Number, (target), name, (val))
+#define BINDING_SET_CONST_INT(target, name, val) BINDING_SET_CONST(Integer, (target), name, (val))
+#define BINDING_SET_CONST_STR(target, name, val) BINDING_SET_CONST(String, (target), name, (val))
 #define BINDING_SET_CONST_PROC(target, name, val)\
   ((target)->Set(String::NewSymbol(#name), FunctionTemplate::New(val)->GetFunction(), \
     static_cast<PropertyAttribute>(ReadOnly | DontDelete)))
 
 /* Some handy macros for adding properties to your prototypes */
-#define BINDING_SET_PROTO_INT(tpl, name, val) \
-  ((tpl)->PrototypeTemplate()->Set(String::NewSymbol(#name), Integer::New(val)))
-#define BINDING_SET_PROTO_STR(tpl, name, val) \
-  ((tpl)->PrototypeTemplate()->Set(String::NewSymbol(#name), String::New(val)))
+#define BINDING_SET_PROTO(type, tpl, name, val) \
+  ((tpl)->PrototypeTemplate()->Set(String::NewSymbol(#name), type::New(val)))
+#define BINDING_SET_PROTO_NUM(tpl, name, val) BINDING_SET_PROTO(Number, (tpl), name, (val))
+#define BINDING_SET_PROTO_INT(tpl, name, val) BINDING_SET_PROTO(Integer, (tpl), name, (val))
+#define BINDING_SET_PROTO_STR(tpl, name, val) BINDING_SET_PROTO(String, (tpl), name, (val))
 #define BINDING_SET_PROTO_PROC(tpl, name, val) \
   do { \
     Local<Signature> __##tpl##_##name##_SIG = Signature::New(tpl); \
@@ -41,12 +43,12 @@ using namespace v8;
         __##tpl##_##name##_TEM); \
   } while (0)
 
-#define BINDING_SET_PROTO_CONST_INT(tpl, name, val) \
-  ((tpl)->PrototypeTemplate()->Set(String::NewSymbol(#name), Integer::New(val), \
+#define BINDING_SET_PROTO_CONST(type, tpl, name, val) \
+  ((tpl)->PrototypeTemplate()->Set(String::NewSymbol(#name), type::New(val), \
     static_cast<PropertyAttribute>(ReadOnly | DontDelete)))
-#define BINDING_SET_PROTO_CONST_STR(tpl, name, val) \
-  ((tpl)->PrototypeTemplate()->Set(String::NewSymbol(#name), String::New(val), \
-    static_cast<PropertyAttribute>(ReadOnly | DontDelete)))
+#define BINDING_SET_PROTO_CONST_NUM(tpl, name, val) BINDING_SET_PROTO_CONST(Number, (tpl), name, (val))
+#define BINDING_SET_PROTO_CONST_INT(tpl, name, val) BINDING_SET_PROTO_CONST(Integer, (tpl), name, (val))
+#define BINDING_SET_PROTO_CONST_STR(tpl, name, val) BINDING_SET_PROTO_CONST(String, (tpl), name, (val))
 #define BINDING_SET_PROTO_CONST_PROC(tpl, name, val) \
   do { \
     Local<Signature> __##tpl##_##name##_SIG = Signature::New(tpl); \
