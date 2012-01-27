@@ -21,6 +21,7 @@ REFERENCES
 
 There were a number of docs used as sources for writing this:
 
++ https://github.com/joyent/node/blob/master/src/node.h
 + https://github.com/JustinTulloss/zeromq.node
 + https://github.com/brianc/node-postgres
 + https://www.cloudkick.com/blog/2010/aug/23/writing-nodejs-native-extensions/
