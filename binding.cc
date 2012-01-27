@@ -9,23 +9,23 @@ using namespace node;
 using namespace v8;
 
 /* Some handy macros for adding properties to your objects */
-#define BINDING_SET(type, target, name, val) \
-  ((target)->Set(String::NewSymbol(#name), type::New(val)))
-#define BINDING_SET_NUM(target, name, val) BINDING_SET(Number, (target), name, (val))
-#define BINDING_SET_INT(target, name, val) BINDING_SET(Integer, (target), name, (val))
-#define BINDING_SET_STR(target, name, val) BINDING_SET(String, (target), name, (val))
-#define BINDING_SET_PROC(target, name, val) \
-  ((target)->Set(String::NewSymbol(#name), \
+#define BINDING_SET(type, obj, name, val) \
+  ((obj)->Set(String::NewSymbol(#name), type::New(val)))
+#define BINDING_SET_NUM(obj, name, val) BINDING_SET(Number, (obj), name, (val))
+#define BINDING_SET_INT(obj, name, val) BINDING_SET(Integer, (obj), name, (val))
+#define BINDING_SET_STR(obj, name, val) BINDING_SET(String, (obj), name, (val))
+#define BINDING_SET_PROC(obj, name, val) \
+  ((obj)->Set(String::NewSymbol(#name), \
     FunctionTemplate::New(val)->GetFunction()))
 
-#define BINDING_SET_CONST(type, target, name, val) \
-  ((target)->Set(String::NewSymbol(#name), type::New(val), \
+#define BINDING_SET_CONST(type, obj, name, val) \
+  ((obj)->Set(String::NewSymbol(#name), type::New(val), \
     static_cast<PropertyAttribute>(ReadOnly | DontDelete)))
-#define BINDING_SET_CONST_NUM(target, name, val) BINDING_SET_CONST(Number, (target), name, (val))
-#define BINDING_SET_CONST_INT(target, name, val) BINDING_SET_CONST(Integer, (target), name, (val))
-#define BINDING_SET_CONST_STR(target, name, val) BINDING_SET_CONST(String, (target), name, (val))
-#define BINDING_SET_CONST_PROC(target, name, val)\
-  ((target)->Set(String::NewSymbol(#name), FunctionTemplate::New(val)->GetFunction(), \
+#define BINDING_SET_CONST_NUM(obj, name, val) BINDING_SET_CONST(Number, (obj), name, (val))
+#define BINDING_SET_CONST_INT(obj, name, val) BINDING_SET_CONST(Integer, (obj), name, (val))
+#define BINDING_SET_CONST_STR(obj, name, val) BINDING_SET_CONST(String, (obj), name, (val))
+#define BINDING_SET_CONST_PROC(obj, name, val)\
+  ((obj)->Set(String::NewSymbol(#name), FunctionTemplate::New(val)->GetFunction(), \
     static_cast<PropertyAttribute>(ReadOnly | DontDelete)))
 
 /* Some handy macros for adding properties to your prototypes */
@@ -67,7 +67,8 @@ namespace binding
 {
 
 /* Constants */
-enum constants
+char* VERSION = "0.0.1";
+enum NUMBERS
 {
   ONE,
   TWO,
@@ -135,13 +136,57 @@ public:
     self->name = *String::Utf8Value(val);
   }
 
+  typedef struct _SayData {
+    string name;
+    string speech;
+    Persistent<Function> cont;
+  } SayData;
+
   /* Make the Person say something */
   static Handle<Value> Say(const Arguments& args) {
     HandleScope scope;
     Person* self = ObjectWrap::Unwrap<Person>(args.This());
+    /* extract the speech and continuation */
+    if (args.Length() < 2 || !args[1]->IsFunction())
+      return ThrowException(Exception::TypeError(String::New("Need a string and a function")));
     String::Utf8Value speech(args[0]);
-    cout << self->name << ": \"" << *speech << "\"\n";
-    return Boolean::New(true);
+    Local<Function> cont = Local<Function>::Cast(args[1]);
+    /* say something asynchronously */
+    SayData* data = new SayData;
+    /* We could also hold a reference to the Person instead of copying their
+     * name, by doing self->Ref(), and self->Unref() in our continuation */
+    data->name = string(self->name.c_str());
+    data->speech = string(*speech);
+    data->cont = Persistent<Function>::New(cont);
+    /* I use uv_queue_work here rather than uv_write or calling into the node
+     * stdlib, because this is more generally useful.  Libraries whose calls are
+     * non-blocking already needn't concern themselves with libuv at all, and
+     * libraries whose calls *are* blocking must either put them on the
+     * threadpool or spawn their own thread to do the work, the latter being
+     * outside the scope of this example. */
+    uv_work_t* req = new uv_work_t;
+    req->type = UV_WORK;
+    req->loop = uv_default_loop(); /* TODO This should just be Loop(), but the compiler is whining */
+    req->data = data;
+    req->work_cb = SayWork;
+    req->after_work_cb = SayAfterWork;
+    uv_queue_work(req->loop, req, req->work_cb, req->after_work_cb);
+    return Undefined();
+  }
+
+  static void SayWork(uv_work_t* req) {
+    SayData* data = static_cast<SayData*>(req->data);
+    cout << data->name << ": \"" << data->speech << "\"\n";
+  }
+
+  static void SayAfterWork(uv_work_t* req) {
+    SayData* data = static_cast<SayData*>(req->data);
+    /* do the rest inside a try/catch so asynchronous errors get thrown */
+    TryCatch tc;
+    data->cont->Call(Context::GetCurrent()->Global(), 0, NULL);
+    data->cont.Dispose();
+    delete data;
+    if(tc.HasCaught()) FatalException(tc);
   }
 }; /* END class Person */
 
@@ -157,17 +202,18 @@ static void Init(Handle<Object> target) {
   BINDING_SET_CONST_INT(target, two, TWO);
   BINDING_SET_CONST_INT(target, three, THREE);
   BINDING_SET_CONST_INT(target, four, FOUR);
+  BINDING_SET_CONST_STR(target, version, VERSION);
 
   /* Initialize classes */
   Person::Init(target);
 
   /* Initialize procedures */
-  NODE_SET_METHOD(target, "id", Id);
+  BINDING_SET_PROC(target, id, Id);
 }
 
 } /* END namespace binding */
 
-/* TODO This symbol needs to exist outside the */
+/* This symbol needs to exist in this scope for the library to load */
 Persistent<FunctionTemplate> binding::Person::ctor;
 
 /* Module entrypoint */

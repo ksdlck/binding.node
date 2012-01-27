@@ -5,6 +5,7 @@ var binding = require("./build/Release/binding");
 console.log("======================================================================================");
 console.log("Constants");
 console.log("--------------------------------------------------------------------------------------");
+console.log("VERSION = " + binding.version);
 console.log("ONE = " + binding.one);
 console.log("TWO = " + binding.two);
 console.log("THREE = " + binding.three);
@@ -38,14 +39,15 @@ console.log("By default, a Person's name is \"" + b.name + "\".");
 b.name = "Bob";
 console.log("But you can rename a Person to anything you like, for example, \"" + b.name + "\".");
 console.log("Why not introduce yourself, " + b.name + "?");
-b.say("Hi, I'm " + b.name);
-console.log("--------------------------------------------------------------------------------------");
-console.log();
+b.say("Hi, I'm " + b.name, function(){
+  console.log("--------------------------------------------------------------------------------------");
+  console.log();
 
-/* test prototype properties */
-console.log("======================================================================================");
-console.log("Classes");
-console.log("--------------------------------------------------------------------------------------");
-console.log(b.name + "'s laughter sounds like \"" + b.laugh + "\"!");
-console.log("The number nine is " + b.nine);
-console.log("--------------------------------------------------------------------------------------");
+  /* test prototype properties */
+  console.log("======================================================================================");
+  console.log("Prototype properties");
+  console.log("--------------------------------------------------------------------------------------");
+  console.log(b.name + "'s laughter sounds like \"" + b.laugh + "\"!");
+  console.log("The number nine is " + b.nine);
+  console.log("--------------------------------------------------------------------------------------");
+});
