@@ -5,7 +5,8 @@ SYNOPSIS
 --------
 
 Get started writing Node.js bindings fast!
-This very lean framework with some nice macros and code examples that should help you bind your favorite C library for use with node.
+This is a very lean framework with some nice macros and code examples that should help you bind your favorite C library for use with node.
+Includes async the way it's supposed to be done (with libUV)!
 
 LICENSE
 -------
